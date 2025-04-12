@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Memrise Speed & Pause Control",
+  "version": "1.1", // Increment version
+  "description": "Control playback speed and pause/resume during Memrise Speed Reviews. Speed settings persist.",
+  // icons section removed as per previous request
+  "permissions": [
+    "storage"
+  ],
+  "content_scripts": [
+    {
+      // More specific URL matching:
+      "matches": [
+        "*://community-courses.memrise.com/aprender/speed*", // Matches the URL pattern you provided
+        "*://app.memrise.com/*/speed_review*" // Keep matching the app domain pattern just in case
+      ],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ]
+}
