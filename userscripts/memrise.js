@@ -128,6 +128,12 @@
     if (document.getElementById('memrise-controls-v2')) { return; }
     // console.log("[Debug] Creating UI controls...");
     
+    // Only show controls when path contains 'aprender/speed'
+    if (!window.location.pathname.includes('aprender/speed')) {
+      // console.log("[Debug] Not on aprender/speed path, skipping controls creation.");
+      return;
+    }
+    
     if (isSmartphone()) {
       createSmartphoneControls();
     } else {
@@ -436,11 +442,80 @@
           overrideTimers();
           createControls();
           setupObserver();
+          setupUrlChangeDetection();
           // console.log("[Debug] Initialization complete.");
       } else {
           // console.log("[Debug] Document body not ready, retrying in 100ms...");
           originalSetTimeout(init, 100);
       }
+  }
+  
+  // --- URL Change Detection ---
+  function setupUrlChangeDetection() {
+      // Store current path to detect changes
+      let lastPath = window.location.pathname;
+      
+      // Check for URL changes periodically
+      originalSetInterval(() => {
+          const currentPath = window.location.pathname;
+          if (currentPath !== lastPath) {
+              // console.log("[Debug] URL changed from " + lastPath + " to " + currentPath);
+              lastPath = currentPath;
+              
+              // If we navigated to a path with aprender/speed, create controls
+              if (currentPath.includes('aprender/speed')) {
+                  // Remove existing controls first to avoid duplicates
+                  const existingControls = document.getElementById('memrise-controls-v2');
+                  if (existingControls) {
+                      existingControls.remove();
+                  }
+                  createControls();
+              }
+          }
+      }, 500);
+      
+      // Also listen for popstate and pushstate events (history API)
+      window.addEventListener('popstate', () => {
+          // console.log("[Debug] popstate event detected");
+          if (window.location.pathname.includes('aprender/speed')) {
+              originalSetTimeout(() => {
+                  const existingControls = document.getElementById('memrise-controls-v2');
+                  if (!existingControls) {
+                      createControls();
+                  }
+              }, 300);
+          }
+      });
+      
+      // Monkey patch history.pushState and history.replaceState
+      const originalPushState = history.pushState;
+      const originalReplaceState = history.replaceState;
+      
+      history.pushState = function() {
+          originalPushState.apply(this, arguments);
+          // console.log("[Debug] pushState event detected");
+          if (window.location.pathname.includes('aprender/speed')) {
+              originalSetTimeout(() => {
+                  const existingControls = document.getElementById('memrise-controls-v2');
+                  if (!existingControls) {
+                      createControls();
+                  }
+              }, 300);
+          }
+      };
+      
+      history.replaceState = function() {
+          originalReplaceState.apply(this, arguments);
+          // console.log("[Debug] replaceState event detected");
+          if (window.location.pathname.includes('aprender/speed')) {
+              originalSetTimeout(() => {
+                  const existingControls = document.getElementById('memrise-controls-v2');
+                  if (!existingControls) {
+                      createControls();
+                  }
+              }, 300);
+          }
+      };
   }
 
   // --- Start ---
