@@ -106,68 +106,183 @@
       // console.log("[Debug] Original timers restored.");
   }
 
-   // --- UI Creation ---
-   function createControls() {
-      if (document.getElementById('memrise-controls-v2')) { return; }
-      // console.log("[Debug] Creating UI controls...");
-      const controlsContainer = document.createElement('div');
-       controlsContainer.id = 'memrise-controls-v2';
-       controlsContainer.style.cssText = `
-         position: fixed; top: 10px; right: 10px;
-         background: rgba(255, 255, 255, 0.95); border: 1px solid #ccc;
-         border-radius: 6px; padding: 12px;
-         box-shadow: 0 3px 12px rgba(0,0,0,0.25); z-index: 10001;
-         display: flex; flex-direction: column; gap: 10px;
-         width: 200px; font-family: sans-serif; color: #333;
-       `;
-       const speedControls = document.createElement('div');
-       speedControls.innerHTML = `
-         <div style="font-weight: bold; margin-bottom: 6px; text-align: center;">Speed: <span id="speed-value-v2">1.00x</span></div>
-         <div style="display: flex; justify-content: space-between; gap: 5px;">
-           <button id="speed-slower-v2" style="flex: 1; padding: 4px 8px; font-size: 16px; cursor: pointer;">-</button>
-           <button id="speed-faster-v2" style="flex: 1; padding: 4px 8px; font-size: 16px; cursor: pointer;">+</button>
-         </div>
-       `;
-       const pauseButton = document.createElement('button');
-       pauseButton.id = 'pause-button-v2';
-       pauseButton.textContent = 'Pause (Space)';
-       pauseButton.style.cssText = `
-         padding: 6px 12px; background: #5cb85c; color: white;
-         border: none; border-radius: 4px; cursor: pointer;
-         font-weight: bold; text-align: center;
-       `;
-       const resetButton = document.createElement('button');
-       resetButton.id = 'reset-button-v2';
-       resetButton.textContent = 'Reset Speed (R)';
-       resetButton.style.cssText = `
-         padding: 6px 12px; background: #337ab7; color: white;
-         border: none; border-radius: 4px; cursor: pointer; text-align: center;
-       `;
-       const statusIndicator = document.createElement('div');
-       statusIndicator.id = 'status-indicator-v2';
-       statusIndicator.textContent = 'Active';
-       statusIndicator.style.cssText = `
-         font-size: 11px; text-align: center; color: #555;
-         margin-top: 5px; font-style: italic;
-       `;
-       controlsContainer.appendChild(speedControls);
-       controlsContainer.appendChild(pauseButton);
-       controlsContainer.appendChild(resetButton);
-       controlsContainer.appendChild(statusIndicator);
-       document.body.appendChild(controlsContainer);
+   // --- Device Detection ---
+function isSmartphone() {
+  return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
 
-       document.getElementById('speed-slower-v2').addEventListener('click', () => { adjustSpeed(Math.max(0.1, speedFactor - 0.1)); });
-       document.getElementById('speed-faster-v2').addEventListener('click', () => { adjustSpeed(Math.min(4.0, speedFactor + 0.1)); });
-       document.getElementById('pause-button-v2').addEventListener('click', togglePause);
-       document.getElementById('reset-button-v2').addEventListener('click', () => { adjustSpeed(1.0); });
+// --- UI Creation ---
+function createControls() {
+  if (document.getElementById('memrise-controls-v2')) { return; }
+  // console.log("[Debug] Creating UI controls...");
+  
+  if (isSmartphone()) {
+    createSmartphoneControls();
+  } else {
+    createDesktopControls();
+  }
+  
+  if (!window.memriseKeysAdded) {
+    document.addEventListener('keydown', handleKeydown);
+    window.memriseKeysAdded = true;
+  }
+  uiControlsCreated = true;
+  // console.log("[Debug] UI controls created and listeners attached.");
+}
 
-       if (!window.memriseKeysAdded) {
-           document.addEventListener('keydown', handleKeydown);
-           window.memriseKeysAdded = true;
-       }
-       uiControlsCreated = true;
-       // console.log("[Debug] UI controls created and listeners attached.");
-   }
+// --- Desktop UI Creation ---
+function createDesktopControls() {
+  const controlsContainer = document.createElement('div');
+  controlsContainer.id = 'memrise-controls-v2';
+  controlsContainer.style.cssText = `
+    position: fixed; top: 10px; right: 10px;
+    background: rgba(255, 255, 255, 0.95); border: 1px solid #ccc;
+    border-radius: 6px; padding: 12px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.25); z-index: 10001;
+    display: flex; flex-direction: column; gap: 10px;
+    width: 200px; font-family: sans-serif; color: #333;
+  `;
+  const speedControls = document.createElement('div');
+  speedControls.innerHTML = `
+    <div style="font-weight: bold; margin-bottom: 6px; text-align: center;">Speed: <span id="speed-value-v2">1.00x</span></div>
+    <div style="display: flex; justify-content: space-between; gap: 5px;">
+      <button id="speed-slower-v2" style="flex: 1; padding: 4px 8px; font-size: 16px; cursor: pointer;">-</button>
+      <button id="speed-faster-v2" style="flex: 1; padding: 4px 8px; font-size: 16px; cursor: pointer;">+</button>
+    </div>
+  `;
+  const pauseButton = document.createElement('button');
+  pauseButton.id = 'pause-button-v2';
+  pauseButton.textContent = 'Pause (Space)';
+  pauseButton.style.cssText = `
+    padding: 6px 12px; background: #5cb85c; color: white;
+    border: none; border-radius: 4px; cursor: pointer;
+    font-weight: bold; text-align: center;
+  `;
+  const resetButton = document.createElement('button');
+  resetButton.id = 'reset-button-v2';
+  resetButton.textContent = 'Reset Speed (R)';
+  resetButton.style.cssText = `
+    padding: 6px 12px; background: #337ab7; color: white;
+    border: none; border-radius: 4px; cursor: pointer; text-align: center;
+  `;
+  const statusIndicator = document.createElement('div');
+  statusIndicator.id = 'status-indicator-v2';
+  statusIndicator.textContent = 'Active';
+  statusIndicator.style.cssText = `
+    font-size: 11px; text-align: center; color: #555;
+    margin-top: 5px; font-style: italic;
+  `;
+  controlsContainer.appendChild(speedControls);
+  controlsContainer.appendChild(pauseButton);
+  controlsContainer.appendChild(resetButton);
+  controlsContainer.appendChild(statusIndicator);
+  document.body.appendChild(controlsContainer);
+
+  document.getElementById('speed-slower-v2').addEventListener('click', () => { adjustSpeed(Math.max(0.1, speedFactor - 0.1)); });
+  document.getElementById('speed-faster-v2').addEventListener('click', () => { adjustSpeed(Math.min(4.0, speedFactor + 0.1)); });
+  document.getElementById('pause-button-v2').addEventListener('click', togglePause);
+  document.getElementById('reset-button-v2').addEventListener('click', () => { adjustSpeed(1.0); });
+}
+
+// --- Smartphone UI Creation ---
+function createSmartphoneControls() {
+  const controlsContainer = document.createElement('div');
+  controlsContainer.id = 'memrise-controls-v2';
+  
+  // Position at bottom of screen with safe area consideration for Safari
+  // Use env(safe-area-inset-bottom) for Safari and fallback for other browsers
+  controlsContainer.style.cssText = `
+    position: fixed; bottom: max(10px, env(safe-area-inset-bottom, 10px)); left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.95); border: 1px solid #ccc;
+    border-radius: 6px; padding: 8px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.25); z-index: 10001;
+    display: flex; flex-direction: column; gap: 8px;
+    width: 180px; font-family: sans-serif; color: #333;
+  `;
+  
+  // First row: Speed controls with - and + buttons
+  const speedRow = document.createElement('div');
+  speedRow.style.cssText = `
+    display: flex; align-items: center; justify-content: space-between;
+  `;
+  
+  const minusButton = document.createElement('button');
+  minusButton.id = 'speed-slower-v2';
+  minusButton.textContent = '-';
+  minusButton.style.cssText = `
+    flex: 0 0 auto; width: 36px; height: 36px; padding: 0;
+    font-size: 18px; font-weight: bold; cursor: pointer;
+    border: 1px solid #ccc; border-radius: 4px;
+    background: #f8f8f8; color: #333;
+  `;
+  
+  const speedDisplay = document.createElement('div');
+  speedDisplay.style.cssText = `
+    flex: 1; text-align: center; font-weight: bold; padding: 0 8px;
+  `;
+  speedDisplay.innerHTML = `Speed: <span id="speed-value-v2">1.00x</span>`;
+  
+  const plusButton = document.createElement('button');
+  plusButton.id = 'speed-faster-v2';
+  plusButton.textContent = '+';
+  plusButton.style.cssText = `
+    flex: 0 0 auto; width: 36px; height: 36px; padding: 0;
+    font-size: 18px; font-weight: bold; cursor: pointer;
+    border: 1px solid #ccc; border-radius: 4px;
+    background: #f8f8f8; color: #333;
+  `;
+  
+  speedRow.appendChild(minusButton);
+  speedRow.appendChild(speedDisplay);
+  speedRow.appendChild(plusButton);
+  
+  // Second row: Pause and Reset buttons
+  const buttonRow = document.createElement('div');
+  buttonRow.style.cssText = `
+    display: flex; justify-content: space-between; gap: 8px;
+  `;
+  
+  const pauseButton = document.createElement('button');
+  pauseButton.id = 'pause-button-v2';
+  pauseButton.textContent = 'Pause';
+  pauseButton.style.cssText = `
+    flex: 1; padding: 8px 6px; background: #5cb85c; color: white;
+    border: none; border-radius: 4px; cursor: pointer;
+    font-weight: bold; text-align: center; font-size: 14px;
+  `;
+  
+  const resetButton = document.createElement('button');
+  resetButton.id = 'reset-button-v2';
+  resetButton.textContent = 'Reset';
+  resetButton.style.cssText = `
+    flex: 1; padding: 8px 6px; background: #337ab7; color: white;
+    border: none; border-radius: 4px; cursor: pointer;
+    text-align: center; font-size: 14px;
+  `;
+  
+  buttonRow.appendChild(pauseButton);
+  buttonRow.appendChild(resetButton);
+  
+  // Add both rows to container
+  controlsContainer.appendChild(speedRow);
+  controlsContainer.appendChild(buttonRow);
+  document.body.appendChild(controlsContainer);
+  
+  // Add viewport meta tag for proper mobile rendering and to enable env() variables
+  if (!document.querySelector('meta[name="viewport"]')) {
+    const viewportMeta = document.createElement('meta');
+    viewportMeta.name = 'viewport';
+    viewportMeta.content = 'width=device-width, initial-scale=1.0, viewport-fit=cover';
+    document.head.appendChild(viewportMeta);
+  }
+  
+  // Add event listeners
+  document.getElementById('speed-slower-v2').addEventListener('click', () => { adjustSpeed(Math.max(0.1, speedFactor - 0.1)); });
+  document.getElementById('speed-faster-v2').addEventListener('click', () => { adjustSpeed(Math.min(4.0, speedFactor + 0.1)); });
+  document.getElementById('pause-button-v2').addEventListener('click', togglePause);
+  document.getElementById('reset-button-v2').addEventListener('click', () => { adjustSpeed(1.0); });
+}
 
   // --- Adjust Speed ---
   function adjustSpeed(factor) {
