@@ -204,57 +204,49 @@
     // Position at bottom of screen with safe area consideration for Safari
     // Use env(safe-area-inset-bottom) for Safari and fallback for other browsers
     controlsContainer.style.cssText = `
-      position: fixed; bottom: max(10px, env(safe-area-inset-bottom, 10px)); left: 50%;
-      transform: translateX(-50%);
+      position: fixed; bottom: max(10px, env(safe-area-inset-bottom, 10px)); left: 0; right: 0;
+      margin: 0 10px;
       background: rgba(255, 255, 255, 0.95); border: 1px solid #ccc;
       border-radius: 6px; padding: 8px;
       box-shadow: 0 3px 12px rgba(0,0,0,0.25); z-index: 10001;
-      display: flex; flex-direction: column; gap: 8px;
-      width: 180px; font-family: sans-serif; color: #333;
+      display: flex; flex-direction: row; align-items: center;
+      font-family: sans-serif; color: #333;
     `;
     
-    // First row: Speed controls with - and + buttons
-    const speedRow = document.createElement('div');
-    speedRow.style.cssText = `
-      display: flex; align-items: center; justify-content: space-between;
-    `;
-    
+    // Single row layout with all controls
+    // Speed minus button
     const minusButton = document.createElement('button');
     minusButton.id = 'speed-slower-v2';
     minusButton.textContent = '-';
     minusButton.style.cssText = `
-      flex: 0 0 auto; width: 36px; height: 36px; padding: 0;
-      font-size: 18px; font-weight: bold; cursor: pointer;
+      flex: 0 0 auto; width: 30px; height: 30px; padding: 0;
+      font-size: 16px; font-weight: bold; cursor: pointer;
       border: 1px solid #ccc; border-radius: 4px;
       background: #f8f8f8; color: #333;
+      margin-right: 5px;
     `;
     
+    // Speed display
     const speedDisplay = document.createElement('div');
     speedDisplay.style.cssText = `
-      flex: 1; text-align: center; font-weight: bold; padding: 0 8px;
+      flex: 0 0 auto; text-align: center; font-weight: bold; padding: 0 5px;
+      font-size: 14px;
     `;
     speedDisplay.innerHTML = `<span id="speed-value-v2">1.00x</span>`;
     
+    // Speed plus button
     const plusButton = document.createElement('button');
     plusButton.id = 'speed-faster-v2';
     plusButton.textContent = '+';
     plusButton.style.cssText = `
-      flex: 0 0 auto; width: 36px; height: 36px; padding: 0;
-      font-size: 18px; font-weight: bold; cursor: pointer;
+      flex: 0 0 auto; width: 30px; height: 30px; padding: 0;
+      font-size: 16px; font-weight: bold; cursor: pointer;
       border: 1px solid #ccc; border-radius: 4px;
       background: #f8f8f8; color: #333;
+      margin-right: 10px;
     `;
     
-    speedRow.appendChild(minusButton);
-    speedRow.appendChild(speedDisplay);
-    speedRow.appendChild(plusButton);
-    
-    // Second row: Pause and Reset buttons
-    const buttonRow = document.createElement('div');
-    buttonRow.style.cssText = `
-      display: flex; justify-content: space-between; gap: 8px;
-    `;
-    
+    // Pause button
     const pauseButton = document.createElement('button');
     pauseButton.id = 'pause-button-v2';
     pauseButton.textContent = 'Pause';
@@ -262,8 +254,10 @@
       flex: 1; padding: 8px 6px; background: #5cb85c; color: white;
       border: none; border-radius: 4px; cursor: pointer;
       font-weight: bold; text-align: center; font-size: 14px;
+      margin-right: 8px;
     `;
     
+    // Reset button
     const resetButton = document.createElement('button');
     resetButton.id = 'reset-button-v2';
     resetButton.textContent = 'Reset';
@@ -273,12 +267,12 @@
       text-align: center; font-size: 14px;
     `;
     
-    buttonRow.appendChild(pauseButton);
-    buttonRow.appendChild(resetButton);
-    
-    // Add both rows to container
-    controlsContainer.appendChild(speedRow);
-    controlsContainer.appendChild(buttonRow);
+    // Add all elements to the container in a single row
+    controlsContainer.appendChild(minusButton);
+    controlsContainer.appendChild(speedDisplay);
+    controlsContainer.appendChild(plusButton);
+    controlsContainer.appendChild(pauseButton);
+    controlsContainer.appendChild(resetButton);
     document.body.appendChild(controlsContainer);
     
     // Add viewport meta tag for proper mobile rendering and to enable env() variables
