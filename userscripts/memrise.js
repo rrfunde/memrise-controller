@@ -84,19 +84,49 @@
       };
 
       window.clearTimeout = function(timerId) {
-          if (timerId && activeTimers[timerId] && activeTimers[timerId].type === 'timeout') {
-              const timerDetails = activeTimers[timerId];
-              if (timerDetails.nativeId) { originalClearTimeout(timerDetails.nativeId); }
-              delete activeTimers[timerId];
-          } else { originalClearTimeout(timerId); }
+          const timerDetails = timerId ? activeTimers[timerId] : null;
+          if (timerDetails && timerDetails.type === 'timeout') {
+              // Clear native timer if it exists (even if paused, for safety)
+              if (timerDetails.nativeId) {
+                  originalClearTimeout(timerDetails.nativeId);
+                  timerDetails.nativeId = null;
+              }
+              // If PAUSED, just nullify pauseData to prevent resume. DO NOT DELETE from activeTimers.
+              if (isPaused) {
+                  if (timerDetails.pauseData) {
+                      delete timerDetails.pauseData;
+                  }
+              } else {
+                  // If NOT paused, delete the timer entry entirely.
+                  delete activeTimers[timerId];
+              }
+          } else {
+              // If it's not our timer ID, pass the call to the original function.
+              originalClearTimeout(timerId);
+          }
       };
 
       window.clearInterval = function(timerId) {
-          if (timerId && activeTimers[timerId] && activeTimers[timerId].type === 'interval') {
-              const timerDetails = activeTimers[timerId];
-              if (timerDetails.nativeId) { originalClearInterval(timerDetails.nativeId); }
-              delete activeTimers[timerId];
-          } else { originalClearInterval(timerId); }
+          const timerDetails = timerId ? activeTimers[timerId] : null;
+          if (timerDetails && timerDetails.type === 'interval') {
+              // Clear native timer if it exists
+              if (timerDetails.nativeId) {
+                  originalClearInterval(timerDetails.nativeId);
+                  timerDetails.nativeId = null;
+              }
+              // If PAUSED, just nullify pauseData to prevent resume. DO NOT DELETE from activeTimers.
+              if (isPaused) {
+                  if (timerDetails.pauseData) {
+                      delete timerDetails.pauseData;
+                  }
+              } else {
+                  // If NOT paused, delete the timer entry entirely.
+                  delete activeTimers[timerId];
+              }
+          } else {
+               // If it's not our timer ID, pass the call to the original function.
+              originalClearInterval(timerId);
+          }
       };
       // console.log("[Debug] Timer overrides applied.");
   }
@@ -352,28 +382,58 @@
               });
           } catch (e) { console.error("Error resuming animations:", e); }
 
-          // For each paused timer, resume it
+          // For each timer in activeTimers, if it doesn't have a nativeId, start/resume it.
           for (const id in activeTimers) {
               const timer = activeTimers[id];
-              if (!timer.nativeId && timer.pauseData) {
+
+              // If timer currently has no native counterpart, it needs to be started/resumed.
+              if (!timer.nativeId) {
                   if (timer.type === 'timeout') {
                       const wrappedCallback = () => {
                           if (activeTimers[id]) { delete activeTimers[id]; }
                           try { timer.callback(...timer.args); } catch (e) { console.error("Error in resumed timeout callback:", e); }
                       };
-                      timer.nativeId = originalSetTimeout(wrappedCallback, timer.pauseData.remainingTime);
-                      timer.scheduledTime = now;
-                      timer.expectedEndTime = now + timer.pauseData.remainingTime;
+
+                      // Calculate remaining time: if pauseData exists, use it, otherwise calculate full adjusted delay.
+                      let resumeDelay;
+                      if (timer.pauseData && timer.pauseData.remainingTime !== undefined) {
+                          resumeDelay = timer.pauseData.remainingTime;
+                      } else {
+                          // Timer created during pause or somehow lost pauseData, calculate fresh adjusted delay
+                          const adjustedDelay = Math.max(0, (timer.requestedDelay || 0) / speedFactor);
+                          resumeDelay = adjustedDelay;
+                          timer.adjustedDelay = adjustedDelay; // Store the calculated delay
+                      }
+                      timer.nativeId = originalSetTimeout(wrappedCallback, resumeDelay);
+                      timer.scheduledTime = now; // Update scheduled time
+                      timer.expectedEndTime = now + resumeDelay; // Update expected end time
+
                   } else if (timer.type === 'interval') {
                       const wrappedCallback = () => {
                           if (!activeTimers[id]) { originalClearInterval(timer.nativeId); return; }
                           try { timer.callback(...timer.args); } catch (e) { console.error("Error in resumed interval callback:", e); }
                       };
-                      timer.nativeId = originalSetInterval(wrappedCallback, timer.pauseData.interval);
+
+                       // Calculate resume interval: if pauseData exists, use it, otherwise calculate fresh adjusted interval.
+                      let resumeInterval;
+                      if (timer.pauseData && timer.pauseData.interval !== undefined) {
+                          resumeInterval = timer.pauseData.interval; // Use interval stored at pause time
+                      } else {
+                          // Timer created during pause or somehow lost pauseData, calculate fresh adjusted interval
+                          const adjustedInterval = Math.max(1, (timer.requestedInterval || 1) / speedFactor);
+                          resumeInterval = adjustedInterval;
+                           // Store adjustedInterval
+                          timer.adjustedInterval = adjustedInterval;
+                      }
+                      timer.nativeId = originalSetInterval(wrappedCallback, resumeInterval);
                   }
-                  timer.pauseData = null;
-              }
-          }
+
+                  // Clear pauseData if it existed, now that timer is resumed/started.
+                  if (timer.pauseData) {
+                      timer.pauseData = null;
+                  }
+              } // End if(!timer.nativeId)
+          } // End of loop through activeTimers
       }
   }
 
